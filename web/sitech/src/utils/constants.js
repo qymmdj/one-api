@@ -104,3 +104,26 @@ export function formatDateTime(date) {
   if (!date) return '-'
   return new Date(date).toLocaleString('zh-CN')
 }
+
+export function getChannelModels(type) {
+  const channelModelMap = {
+    1: ['gpt-3.5-turbo', 'gpt-3.5-turbo-16k', 'gpt-4', 'gpt-4-32k'],
+    3: ['gpt-3.5-turbo', 'gpt-4'],
+    11: ['chat-bison'],
+    14: ['claude-2', 'claude-instant-1'],
+    15: ['ernie-bot', 'ernie-bot-turbo'],
+    16: ['glm-4', 'glm-4v', 'chatglm3-6b'],
+    17: ['qwen-turbo', 'qwen-plus', 'qwen-max'],
+    18: ['spark-3.5', 'spark-3.0', 'spark-2.0'],
+    24: ['gemini-pro', 'gemini-pro-vision'],
+    25: ['moonshot-v1-8k', 'moonshot-v1-32k'],
+    26: ['baichuan-2-7b-chat', 'baichuan-2-13b-chat'],
+    27: ['abab6-chat', 'abab5-chat'],
+    28: ['mistral-7b', 'mixtral-8x7b'],
+    29: ['mixtral-8x7b-32768', 'llama-3-70b'],
+    30: ['llama3', 'mistral', 'phi3'],
+    44: ['grok-beta'],
+    50: ['gpt-3.5-turbo', 'gpt-4']
+  }
+  return channelModelMap[type] || []
+}

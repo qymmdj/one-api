@@ -3,7 +3,7 @@
     <div class="login-box">
       <div class="login-header">
         <img src="@/assets/images/logo.svg" alt="Logo" class="logo" />
-        <h1>One API</h1>
+        <h1>AI网关</h1>
         <p>统一 API 接入平台</p>
       </div>
       

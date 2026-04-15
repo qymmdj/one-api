@@ -96,7 +96,27 @@
           <el-input v-model="form.base_url" placeholder="留空使用默认地址" />
         </el-form-item>
         <el-form-item label="模型列表" prop="models">
-          <el-input v-model="form.models" placeholder="用逗号分隔，如：gpt-3.5-turbo,gpt-4" />
+          <el-select
+            v-model="selectedModels"
+            multiple
+            filterable
+            reserve-keyword
+            placeholder="请选择模型（支持搜索）"
+            style="width: 100%"
+            :loading="loadingModels"
+          >
+            <el-option
+              v-for="model in modelOptions"
+              :key="model.value"
+              :label="model.label"
+              :value="model.value"
+            />
+          </el-select>
+          <div style="margin-top: 8px;">
+            <el-button size="small" @click="fillBasicModels">填充推荐模型</el-button>
+            <el-button size="small" @click="fillAllModels">填充全部模型</el-button>
+            <el-button size="small" @click="clearModels">清空模型</el-button>
+          </div>
         </el-form-item>
         <el-form-item label="分组" prop="group">
           <el-input v-model="form.group" placeholder="默认分组" />
@@ -131,10 +151,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { channelApi } from '@/api'
-import { CHANNEL_TYPES, CHANNEL_STATUS, formatQuota } from '@/utils/constants'
+import { CHANNEL_TYPES, CHANNEL_STATUS, formatQuota, getChannelModels } from '@/utils/constants'
 
 const loading = ref(false)
 const tableData = ref([])
@@ -142,6 +162,11 @@ const dialogVisible = ref(false)
 const isEdit = ref(false)
 const submitLoading = ref(false)
 const formRef = ref()
+const modelOptions = ref([])
+const selectedModels = ref([])
+const loadingModels = ref(false)
+const fullModels = ref([])
+const basicModels = ref([])
 
 const pagination = reactive({
   page: 1,
@@ -169,6 +194,40 @@ const rules = {
   type: [{ required: true, message: '请选择渠道类型', trigger: 'change' }],
   key: [{ required: true, message: '请输入API Key', trigger: 'blur' }]
 }
+
+const fetchModels = async () => {
+  loadingModels.value = true
+  try {
+    const res = await channelApi.getModels()
+    if (res.data) {
+      modelOptions.value = res.data.map(model => ({
+        value: model.id,
+        label: model.id
+      }))
+      fullModels.value = res.data.map(model => model.id)
+    }
+  } catch (error) {
+    console.error('获取模型列表失败:', error)
+  } finally {
+    loadingModels.value = false
+  }
+}
+
+const fillBasicModels = () => {
+  selectedModels.value = basicModels.value
+}
+
+const fillAllModels = () => {
+  selectedModels.value = fullModels.value
+}
+
+const clearModels = () => {
+  selectedModels.value = []
+}
+
+watch(() => form.type, (newType) => {
+  basicModels.value = getChannelModels(newType)
+})
 
 const loadData = async () => {
   loading.value = true
@@ -202,6 +261,7 @@ const handleAdd = () => {
     system_prompt: '',
     config: ''
   })
+  selectedModels.value = getChannelModels(1)
   dialogVisible.value = true
 }
 
@@ -221,6 +281,7 @@ const handleEdit = (row) => {
     system_prompt: row.system_prompt || '',
     config: row.config || ''
   })
+  selectedModels.value = row.models ? row.models.split(',') : []
   dialogVisible.value = true
 }
 
@@ -231,6 +292,7 @@ const handleSubmit = async () => {
       submitLoading.value = true
       try {
         const data = { ...form }
+        data.models = selectedModels.value.join(',')
         if (isEdit.value) {
           await channelApi.update(data)
           ElMessage.success('更新成功')
@@ -296,6 +358,7 @@ const handleDelete = async (row) => {
 
 onMounted(() => {
   loadData()
+  fetchModels()
 })
 </script>
 

@@ -82,6 +82,26 @@ func GetHomePageContent(c *gin.Context) {
 	return
 }
 
+func GetHomeData(c *gin.Context) {
+	channels, err := model.GetAllChannels(0, 0, "all")
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data": gin.H{
+			"channel_count": len(channels),
+			"channel_stats": []interface{}{},
+		},
+	})
+	return
+}
+
 func SendEmailVerification(c *gin.Context) {
 	email := c.Query("email")
 	if err := common.Validate.Var(email, "required,email"); err != nil {

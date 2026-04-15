@@ -4,7 +4,7 @@
       <div class="register-header">
         <img src="@/assets/images/logo.svg" alt="Logo" class="logo" />
         <h1>注册账号</h1>
-        <p>加入 One API</p>
+        <p>加入 AI网关</p>
       </div>
       
       <el-form ref="formRef" :model="form" :rules="rules" class="register-form">

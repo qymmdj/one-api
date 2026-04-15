@@ -31,6 +31,23 @@ func GetAllChannels(c *gin.Context) {
 	return
 }
 
+func GetAllChannelsUnlimited(c *gin.Context) {
+	channels, err := model.GetAllChannels(0, 0, "all")
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data":    channels,
+	})
+	return
+}
+
 func SearchChannels(c *gin.Context) {
 	keyword := c.Query("keyword")
 	channels, err := model.SearchChannels(keyword)
@@ -169,4 +186,49 @@ func UpdateChannel(c *gin.Context) {
 		"data":    channel,
 	})
 	return
+}
+
+func UpdateChannelStatus(c *gin.Context) {
+channelId, err := strconv.Atoi(c.Param("id"))
+if err != nil {
+c.JSON(http.StatusOK, gin.H{
+"success": false,
+"message": err.Error(),
+})
+return
+}
+var req struct {
+Status int `json:"status"`
+}
+err = c.ShouldBindJSON(&req)
+if err != nil {
+c.JSON(http.StatusOK, gin.H{
+"success": false,
+"message": err.Error(),
+})
+return
+}
+channel, err := model.GetChannelById(channelId, false)
+if err != nil {
+c.JSON(http.StatusOK, gin.H{
+"success": false,
+"message": err.Error(),
+})
+return
+}
+channel.Status = req.Status
+err = channel.Update()
+if err != nil {
+c.JSON(http.StatusOK, gin.H{
+"success": false,
+"message": err.Error(),
+})
+return
+}
+c.JSON(http.StatusOK, gin.H{
+"success": true,
+"message": "",
+"data":    channel,
+})
+return
 }

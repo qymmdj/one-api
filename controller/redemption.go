@@ -193,3 +193,33 @@ func UpdateRedemption(c *gin.Context) {
 	})
 	return
 }
+
+func RedeemRedemption(c *gin.Context) {
+ctx := c.Request.Context()
+var req struct {
+Key string `json:"key"`
+}
+err := c.ShouldBindJSON(&req)
+if err != nil {
+c.JSON(http.StatusOK, gin.H{
+"success": false,
+"message": err.Error(),
+})
+return
+}
+userId := c.GetInt("id")
+quota, err := model.Redeem(ctx, req.Key, userId)
+if err != nil {
+c.JSON(http.StatusOK, gin.H{
+"success": false,
+"message": err.Error(),
+})
+return
+}
+c.JSON(http.StatusOK, gin.H{
+"success": true,
+"message": "",
+"data":    quota,
+})
+return
+}

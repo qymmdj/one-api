@@ -123,9 +123,10 @@ func DashboardListModels(c *gin.Context) {
 }
 
 func ListAllModels(c *gin.Context) {
-	c.JSON(200, gin.H{
-		"object": "list",
-		"data":   models,
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data":    models,
 	})
 }
 
