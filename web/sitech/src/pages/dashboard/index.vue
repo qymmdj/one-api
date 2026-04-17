@@ -121,10 +121,12 @@ const chartInstance = ref()
 
 const loadData = async () => {
   try {
-    const res = await systemApi.getHomeData()
-    if (res.data) {
-      channelCount.value = res.data.channel_count || 0
-      channelStats.value = res.data.channel_stats || []
+    if (userStore.isAdmin) {
+      const res = await systemApi.getHomeData()
+      if (res.data) {
+        channelCount.value = res.data.channel_count || 0
+        channelStats.value = res.data.channel_stats || []
+      }
     }
   } catch (error) {
     console.error(error)
@@ -132,6 +134,10 @@ const loadData = async () => {
 }
 
 const loadChannels = async () => {
+  if (!userStore.isAdmin) {
+    channelCount.value = '-'
+    return
+  }
   try {
     const res = await channelApi.getAll()
     channelCount.value = res.data?.length || 0

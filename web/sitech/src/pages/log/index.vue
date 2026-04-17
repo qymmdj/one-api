@@ -20,10 +20,10 @@
         <el-form-item label="模型">
           <el-input v-model="searchForm.model_name" placeholder="请输入模型名" clearable style="width: 150px" />
         </el-form-item>
-        <el-form-item label="用户名">
+        <el-form-item label="用户名" v-if="userStore.isAdmin">
           <el-input v-model="searchForm.username" placeholder="请输入用户名" clearable style="width: 120px" />
         </el-form-item>
-        <el-form-item label="渠道">
+        <el-form-item label="渠道" v-if="userStore.isAdmin">
           <el-select v-model="searchForm.channel" placeholder="全部" clearable style="width: 120px">
             <el-option v-for="ch in channels" :key="ch.id" :value="ch.id" :label="ch.name" />
           </el-select>
@@ -78,9 +78,11 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useUserStore } from '@/store/user'
 import { logApi } from '@/api'
 import { LOG_TYPES, formatQuota, formatDateTime } from '@/utils/constants'
 
+const userStore = useUserStore()
 const loading = ref(false)
 const tableData = ref([])
 const channels = ref([])
@@ -92,14 +94,28 @@ const loadData = async () => {
   try {
     const params = { page: pagination.page, size: pagination.size, ...searchForm }
     Object.keys(params).forEach(key => !params[key] && delete params[key])
-    const res = await logApi.getList(params)
-    tableData.value = res.data?.list || []
-    pagination.total = res.data?.total || 0
+    let res
+    if (userStore.isAdmin) {
+      res = await logApi.getList(params)
+    } else {
+      res = await logApi.getSelfList(params)
+    }
+    if (Array.isArray(res.data)) {
+      tableData.value = res.data || []
+      pagination.total = res.data?.length || 0
+    } else {
+      tableData.value = res.data?.list || res.data || []
+      pagination.total = res.data?.total || (Array.isArray(res.data) ? res.data.length : 0)
+    }
   } catch (error) { console.error(error) }
   finally { loading.value = false }
 }
 
 const loadChannels = async () => {
+  if (!userStore.isAdmin) {
+    channels.value = []
+    return
+  }
   try {
     const res = await logApi.getChannels()
     channels.value = res.data || []
@@ -107,7 +123,11 @@ const loadChannels = async () => {
 }
 
 const handleReset = () => {
-  Object.assign(searchForm, { type: '', model_name: '', username: '', channel: '' })
+  if (userStore.isAdmin) {
+    Object.assign(searchForm, { type: '', model_name: '', username: '', channel: '' })
+  } else {
+    Object.assign(searchForm, { type: '', model_name: '' })
+  }
   loadData()
 }
 

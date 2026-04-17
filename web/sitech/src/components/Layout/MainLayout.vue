@@ -1,6 +1,6 @@
 <template>
   <el-container class="main-layout">
-    <el-aside :width="isCollapse ? '64px' : '220px'" class="sidebar" :class="{ collapse: isCollapse }">
+    <el-aside :width="isCollapse ? '56px' : '180px'" class="sidebar" :class="{ collapse: isCollapse }">
       <div class="logo">
         <img v-show="isCollapse" :src="logo[1]" alt="Logo" />
         <object
@@ -8,11 +8,9 @@
           id="logo-svg"
           type="image/svg+xml"
           :data="logo[0]"
-          style="pointer-events: none"
+          style="pointer-events: none; width: 200px; height: 80px;"
         ></object>
-        <span v-show="!isCollapse">AI网关</span>
       </div>
-      
       <el-menu
         :default-active="activeMenu"
         class="sidebar-menu"
@@ -125,7 +123,7 @@
       
       <div class="welcome" :class="{ collapse: isCollapse }">
         <p class="welcome-title">您好，{{ userStore.user?.username }}！</p>
-        <p class="welcome-intro">欢迎使用 AI网关</p>
+        <p class="welcome-intro">欢迎使用 统一模型网关</p>
       </div>
     </el-aside>
     
@@ -301,7 +299,7 @@ const handleCommand = async (command) => {
   }
 
   .logo {
-    height: 60px;
+    height: 70px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -312,14 +310,14 @@ const handleCommand = async (command) => {
     border-bottom: 1px solid #e8eef4;
     position: relative;
     z-index: 1;
-    
+
     img {
-      height: 36px;
+      height: 80px;
     }
-    
+
     object {
-      width: 80px;
-      height: 36px;
+      width: 200px;
+      height: 80px;
     }
   }
 
@@ -328,41 +326,45 @@ const handleCommand = async (command) => {
     position: relative;
     z-index: 1;
     flex: 1;
-    padding: 20px 0;
+    padding: 12px 0;
     
     .el-menu-item {
-      height: 50px;
-      line-height: 50px;
-      margin: 0 12px 8px;
-      border-radius: 8px;
+      height: 40px;
+      line-height: 40px;
+      margin: 0 8px 4px;
+      border-radius: 6px;
       background: transparent;
       display: flex;
       align-items: center;
       justify-content: flex-start;
-      padding: 0 16px;
+      padding: 0 12px;
       
       &:hover {
-        background-color: #d4e4ff !important;
+        background-color: #f0f0f0 !important;
       }
       
       &.is-active {
-        background: linear-gradient(135deg, #0050d8 0%, #0066ff 100%) !important;
+        background: #e8e8e8 !important;
         
         span {
-          color: #fff;
+          color: #333;
+        }
+        
+        .menu-icon {
+          opacity: 0.8;
         }
       }
       
       .menu-icon {
-        width: 20px;
-        height: 20px;
-        margin-right: 12px;
+        width: 18px;
+        height: 18px;
+        margin-right: 10px;
         flex-shrink: 0;
       }
       
       span {
         color: #4d5a72;
-        font-size: 14px;
+        font-size: 13px;
       }
     }
   }

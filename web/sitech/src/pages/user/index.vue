@@ -10,6 +10,21 @@
         </div>
       </template>
       
+      <div class="search-bar">
+        <el-input 
+          v-model="searchForm.keyword" 
+          placeholder="请输入用户名、邮箱或显示名称搜索" 
+          class="search-input"
+          @keyup.enter="handleSearch"
+        >
+          <template #prefix>
+            <Search />
+          </template>
+        </el-input>
+        <el-button type="primary" @click="handleSearch">搜索</el-button>
+        <el-button @click="resetSearch">重置</el-button>
+      </div>
+      
       <el-table :data="tableData" v-loading="loading" stripe>
         <el-table-column prop="id" label="ID" width="60" />
         <el-table-column prop="username" label="用户名" width="120" />
@@ -86,7 +101,9 @@
           </el-select>
         </el-form-item>
         <el-form-item label="分组" prop="group">
-          <el-input v-model="form.group" />
+          <el-select v-model="form.group" style="width: 100%">
+            <el-option v-for="group in groupOptions" :key="group.value" :value="group.value" :label="group.label" />
+          </el-select>
         </el-form-item>
         <el-form-item label="配额" prop="quota">
           <el-input-number v-model="form.quota" :min="0" :step="1000000" />
@@ -118,7 +135,8 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { userApi } from '@/api'
+import { Search, Plus } from '@element-plus/icons-vue'
+import { userApi, channelApi } from '@/api'
 import { USER_ROLES, USER_STATUS, formatQuota } from '@/utils/constants'
 
 const loading = ref(false)
@@ -130,8 +148,13 @@ const submitLoading = ref(false)
 const topupLoading = ref(false)
 const formRef = ref()
 const topupFormRef = ref()
+const groupOptions = ref([])
 
 const pagination = reactive({ page: 1, size: 20, total: 0 })
+
+const searchForm = reactive({
+  keyword: ''
+})
 
 const form = reactive({
   id: null, username: '', display_name: '', email: '', password: '', role: 1, group: 'default', quota: 0
@@ -142,17 +165,75 @@ const topupForm = reactive({ user_id: null, username: '', quota: 0 })
 const rules = {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
   email: [{ type: 'email', message: '请输入正确邮箱', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur', min: 8 }]
+  password: [{
+    validator: (rule, value, callback) => {
+      if (!isEdit.value) {
+        if (!value || value === '') {
+          callback(new Error('请输入密码'))
+        } else if (value.length < 8) {
+          callback(new Error('密码长度不能少于8位'))
+        } else {
+          callback()
+        }
+      } else {
+        callback()
+      }
+    },
+    trigger: 'blur'
+  }]
 }
 
 const loadData = async () => {
   loading.value = true
   try {
-    const res = await userApi.getList({ page: pagination.page, size: pagination.size })
+    const params = { 
+      page: pagination.page, 
+      size: pagination.size 
+    }
+    if (searchForm.keyword) {
+      params.keyword = searchForm.keyword
+    }
+    const res = await userApi.getList(params)
     tableData.value = res.data?.list || []
     pagination.total = res.data?.total || 0
   } catch (error) { console.error(error) }
   finally { loading.value = false }
+}
+
+const fetchGroups = async () => {
+  try {
+    const res = await channelApi.getGroups()
+    if (res.data && Array.isArray(res.data) && res.data.length > 0) {
+      groupOptions.value = res.data.map(group => ({
+        value: group,
+        label: group
+      }))
+    } else {
+      groupOptions.value = [
+        { value: 'default', label: 'default' },
+        { value: 'vip', label: 'vip' },
+        { value: 'svip', label: 'svip' }
+      ]
+    }
+  } catch (error) {
+    console.error('获取分组列表失败:', error)
+    groupOptions.value = [
+      { value: 'default', label: 'default' },
+      { value: 'vip', label: 'vip' },
+      { value: 'svip', label: 'svip' }
+    ]
+  }
+}
+
+const handleSearch = () => {
+  pagination.page = 1
+  loadData()
+}
+
+const resetSearch = () => {
+  searchForm.keyword = ''
+  pagination.page = 1
+  loadData()
 }
 
 const handleAdd = () => {
@@ -224,9 +305,26 @@ const handleDelete = async (row) => {
   } catch (error) { if (error !== 'cancel') console.error(error) }
 }
 
-onMounted(() => { loadData() })
+onMounted(() => { loadData(); fetchGroups() })
 </script>
 
 <style lang="scss" scoped>
-.user-page { .card-header { display: flex; justify-content: space-between; align-items: center; } }
+.user-page { 
+  .card-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+  }
+  
+  .search-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    align-items: center;
+    
+    .search-input {
+      width: 280px;
+    }
+  }
+}
 </style>

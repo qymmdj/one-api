@@ -59,6 +59,23 @@ func SearchUserTokens(userId int, keyword string) (tokens []*Token, err error) {
 	return tokens, err
 }
 
+func SearchUserTokensWithKeyword(userId int, keyword string, startIdx int, num int) ([]*Token, error) {
+	var tokens []*Token
+	var err error
+	err = DB.Where("user_id = ?", userId).Where("id = ? or name LIKE ?", helper.String2Int(keyword), "%"+keyword+"%").Order("id desc").Limit(num).Offset(startIdx).Find(&tokens).Error
+	return tokens, err
+}
+
+func CountUserTokens(userId int) (count int64, err error) {
+	err = DB.Model(&Token{}).Where("user_id = ?", userId).Count(&count).Error
+	return count, err
+}
+
+func CountUserTokensWithKeyword(userId int, keyword string) (count int64, err error) {
+	err = DB.Model(&Token{}).Where("user_id = ?", userId).Where("id = ? or name LIKE ?", helper.String2Int(keyword), "%"+keyword+"%").Count(&count).Error
+	return count, err
+}
+
 func ValidateUserToken(key string) (token *Token, err error) {
 	if key == "" {
 		return nil, errors.New("未提供令牌")

@@ -100,9 +100,9 @@ export function formatDate(timestamp) {
   return new Date(timestamp * 1000).toLocaleString('zh-CN')
 }
 
-export function formatDateTime(date) {
-  if (!date) return '-'
-  return new Date(date).toLocaleString('zh-CN')
+export function formatDateTime(timestamp) {
+  if (!timestamp) return '-'
+  return new Date(timestamp * 1000).toLocaleString('zh-CN')
 }
 
 export function getChannelModels(type) {

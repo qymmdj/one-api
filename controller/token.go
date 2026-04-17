@@ -21,8 +21,20 @@ func GetAllTokens(c *gin.Context) {
 		p = 0
 	}
 
+	keyword := c.Query("keyword")
 	order := c.Query("order")
-	tokens, err := model.GetAllUserTokens(userId, p*config.ItemsPerPage, config.ItemsPerPage, order)
+	
+	var tokens []*model.Token
+	var err error
+	var total int64
+	
+	if keyword != "" {
+		tokens, err = model.SearchUserTokensWithKeyword(userId, keyword, p*config.ItemsPerPage, config.ItemsPerPage)
+		total, _ = model.CountUserTokensWithKeyword(userId, keyword)
+	} else {
+		tokens, err = model.GetAllUserTokens(userId, p*config.ItemsPerPage, config.ItemsPerPage, order)
+		total, _ = model.CountUserTokens(userId)
+	}
 
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
@@ -34,7 +46,10 @@ func GetAllTokens(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
-		"data":    tokens,
+		"data": gin.H{
+			"list":  tokens,
+			"total": total,
+		},
 	})
 	return
 }

@@ -10,6 +10,25 @@
         </div>
       </template>
       
+      <div class="search-bar">
+        <el-input
+          v-model="searchKey"
+          placeholder="请输入渠道名称或分组进行搜索"
+          class="search-input"
+          @keyup.enter="handleSearch"
+        >
+          <template #prefix>
+            <el-icon><Search /></el-icon>
+          </template>
+        </el-input>
+        <el-select v-model="searchType" placeholder="选择搜索类型" class="search-select">
+          <el-option label="名称" value="name" />
+          <el-option label="分组" value="group" />
+        </el-select>
+        <el-button type="primary" @click="handleSearch">查询</el-button>
+        <el-button @click="handleReset">重置</el-button>
+      </div>
+      
       <el-table :data="tableData" v-loading="loading" stripe>
         <el-table-column prop="id" label="ID" width="60" />
         <el-table-column prop="name" label="名称" min-width="120" />
@@ -41,18 +60,20 @@
             {{ formatQuota(row.used_quota) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" link @click="handleTest(row)">测试</el-button>
-            <el-button type="primary" link @click="handleEdit(row)">编辑</el-button>
-            <el-button 
-              :type="row.status === 1 ? 'warning' : 'success'" 
-              link 
-              @click="handleToggleStatus(row)"
-            >
-              {{ row.status === 1 ? '禁用' : '启用' }}
-            </el-button>
-            <el-button type="danger" link @click="handleDelete(row)">删除</el-button>
+            <div class="action-buttons">
+              <el-button size="small" class="btn-test" @click="handleTest(row)">测试</el-button>
+              <el-button size="small" class="btn-edit" @click="handleEdit(row)">编辑</el-button>
+              <el-button 
+                size="small" 
+                :class="row.status === 1 ? 'btn-disable' : 'btn-enable'" 
+                @click="handleToggleStatus(row)"
+              >
+                {{ row.status === 1 ? '禁用' : '启用' }}
+              </el-button>
+              <el-button size="small" class="btn-delete" @click="handleDelete(row)">删除</el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -119,7 +140,14 @@
           </div>
         </el-form-item>
         <el-form-item label="分组" prop="group">
-          <el-input v-model="form.group" placeholder="默认分组" />
+          <el-select v-model="form.group" placeholder="请选择分组" style="width: 100%">
+            <el-option
+              v-for="group in groupOptions"
+              :key="group.value"
+              :label="group.label"
+              :value="group.value"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="模型映射" prop="model_mapping">
           <el-input 
@@ -153,6 +181,7 @@
 <script setup>
 import { ref, reactive, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search, Plus } from '@element-plus/icons-vue'
 import { channelApi } from '@/api'
 import { CHANNEL_TYPES, CHANNEL_STATUS, formatQuota, getChannelModels } from '@/utils/constants'
 
@@ -167,6 +196,9 @@ const selectedModels = ref([])
 const loadingModels = ref(false)
 const fullModels = ref([])
 const basicModels = ref([])
+const searchKey = ref('')
+const searchType = ref('name')
+const groupOptions = ref([])
 
 const pagination = reactive({
   page: 1,
@@ -213,6 +245,25 @@ const fetchModels = async () => {
   }
 }
 
+const fetchGroups = async () => {
+  try {
+    const res = await channelApi.getGroups()
+    if (res.data) {
+      groupOptions.value = res.data.map(group => ({
+        value: group,
+        label: group
+      }))
+    }
+  } catch (error) {
+    console.error('获取分组列表失败:', error)
+    groupOptions.value = [
+      { value: 'default', label: 'default' },
+      { value: 'vip', label: 'vip' },
+      { value: 'svip', label: 'svip' }
+    ]
+  }
+}
+
 const fillBasicModels = () => {
   selectedModels.value = basicModels.value
 }
@@ -232,10 +283,15 @@ watch(() => form.type, (newType) => {
 const loadData = async () => {
   loading.value = true
   try {
-    const res = await channelApi.getList({
+    const params = {
       page: pagination.page,
       size: pagination.size
-    })
+    }
+    if (searchKey.value) {
+      params.keyword = searchKey.value
+      params.search_type = searchType.value
+    }
+    const res = await channelApi.getList(params)
     tableData.value = res.data?.list || []
     pagination.total = res.data?.total || 0
   } catch (error) {
@@ -243,6 +299,18 @@ const loadData = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const handleSearch = () => {
+  pagination.page = 1
+  loadData()
+}
+
+const handleReset = () => {
+  searchKey.value = ''
+  searchType.value = 'name'
+  pagination.page = 1
+  loadData()
 }
 
 const handleAdd = () => {
@@ -265,23 +333,31 @@ const handleAdd = () => {
   dialogVisible.value = true
 }
 
-const handleEdit = (row) => {
+const handleEdit = async (row) => {
   isEdit.value = true
-  Object.assign(form, {
-    id: row.id,
-    name: row.name,
-    type: row.type,
-    key: '',
-    base_url: row.base_url || '',
-    models: row.models || '',
-    group: row.group || 'default',
-    model_mapping: row.model_mapping || '',
-    priority: row.priority || 0,
-    weight: row.weight || 0,
-    system_prompt: row.system_prompt || '',
-    config: row.config || ''
-  })
-  selectedModels.value = row.models ? row.models.split(',') : []
+  try {
+    const res = await channelApi.getById(row.id)
+    if (res.data) {
+      Object.assign(form, {
+        id: res.data.id,
+        name: res.data.name,
+        type: res.data.type,
+        key: res.data.key || '',
+        base_url: res.data.base_url || '',
+        models: res.data.models || '',
+        group: res.data.group || 'default',
+        model_mapping: res.data.model_mapping || '',
+        priority: res.data.priority || 0,
+        weight: res.data.weight || 0,
+        system_prompt: res.data.system_prompt || '',
+        config: res.data.config || ''
+      })
+      selectedModels.value = res.data.models ? res.data.models.split(',') : []
+    }
+  } catch (error) {
+    console.error('获取渠道详情失败:', error)
+    ElMessage.error('获取渠道详情失败')
+  }
   dialogVisible.value = true
 }
 
@@ -359,6 +435,7 @@ const handleDelete = async (row) => {
 onMounted(() => {
   loadData()
   fetchModels()
+  fetchGroups()
 })
 </script>
 
@@ -368,6 +445,87 @@ onMounted(() => {
     display: flex;
     justify-content: space-between;
     align-items: center;
+  }
+  
+  .search-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    align-items: center;
+    
+    .search-input {
+      width: 280px;
+    }
+    
+    .search-select {
+      width: 120px;
+    }
+  }
+  
+  .action-buttons {
+    display: flex;
+    gap: 4px;
+    
+    .el-button {
+      padding: 2px 8px;
+      font-size: 11px;
+      border-radius: 3px;
+      
+      &.btn-test {
+        color: #52c41a;
+        border-color: #b7eb8f;
+        background-color: #f6ffed;
+        
+        &:hover {
+          background-color: #d9f7be;
+          border-color: #95de64;
+        }
+      }
+      
+      &.btn-edit {
+        color: #fff;
+        background-color: #1890ff;
+        border-color: #1890ff;
+        
+        &:hover {
+          background-color: #40a9ff;
+          border-color: #40a9ff;
+        }
+      }
+      
+      &.btn-disable {
+        color: #faad14;
+        border-color: #ffd666;
+        background-color: #fffbe6;
+        
+        &:hover {
+          background-color: #fff7e6;
+          border-color: #ffa940;
+        }
+      }
+      
+      &.btn-enable {
+        color: #52c41a;
+        border-color: #b7eb8f;
+        background-color: #f6ffed;
+        
+        &:hover {
+          background-color: #d9f7be;
+          border-color: #95de64;
+        }
+      }
+      
+      &.btn-delete {
+        color: #fff;
+        background-color: #ff4d4f;
+        border-color: #ff4d4f;
+        
+        &:hover {
+          background-color: #ff7875;
+          border-color: #ff7875;
+        }
+      }
+    }
   }
 }
 </style>

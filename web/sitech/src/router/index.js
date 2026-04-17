@@ -92,7 +92,7 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   nprogress.start()
-  document.title = to.meta.title ? `${to.meta.title} - AI网关` : 'AI网关'
+  document.title = to.meta.title ? `${to.meta.title} - 统一模型网关` : '统一模型网关'
   
   const userStore = useUserStore()
   const requiresAuth = to.meta.requiresAuth !== false

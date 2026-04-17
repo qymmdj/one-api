@@ -71,6 +71,38 @@ func SearchChannels(keyword string) (channels []*Channel, err error) {
 	return channels, err
 }
 
+func SearchChannelsWithKeyword(keyword string, searchType string, startIdx int, num int) ([]*Channel, error) {
+	var channels []*Channel
+	var err error
+	
+	if searchType == "group" {
+		err = DB.Omit("key").Where("group = ?", keyword).Order("id desc").Limit(num).Offset(startIdx).Find(&channels).Error
+	} else {
+		err = DB.Omit("key").Where("id = ? or name LIKE ?", helper.String2Int(keyword), "%"+keyword+"%").Order("id desc").Limit(num).Offset(startIdx).Find(&channels).Error
+	}
+	
+	return channels, err
+}
+
+func CountChannelsWithKeyword(keyword string, searchType string) (int64, error) {
+	var count int64
+	var err error
+	
+	if searchType == "group" {
+		err = DB.Model(&Channel{}).Where("group = ?", keyword).Count(&count).Error
+	} else {
+		err = DB.Model(&Channel{}).Where("id = ? or name LIKE ?", helper.String2Int(keyword), "%"+keyword+"%").Count(&count).Error
+	}
+	
+	return count, err
+}
+
+func CountChannels() (int64, error) {
+	var count int64
+	err := DB.Model(&Channel{}).Count(&count).Error
+	return count, err
+}
+
 func GetChannelById(id int, selectAll bool) (*Channel, error) {
 	channel := Channel{Id: id}
 	var err error = nil

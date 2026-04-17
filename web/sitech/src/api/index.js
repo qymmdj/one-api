@@ -14,7 +14,9 @@ export const authApi = {
 export const channelApi = {
   getList: (params) => request.get('/api/channel/list', { params }),
   getAll: () => request.get('/api/channel/all'),
+  getById: (id) => request.get(`/api/channel/${id}`),
   getModels: () => request.get('/api/channel/models'),
+  getGroups: () => request.get('/api/group/'),
   add: (data) => request.post('/api/channel/add', data),
   update: (data) => request.put('/api/channel/update', data),
   delete: (id) => request.delete(`/api/channel/${id}`),
@@ -40,6 +42,7 @@ export const userApi = {
 
 export const logApi = {
   getList: (params) => request.get('/api/log/list', { params }),
+  getSelfList: (params) => request.get('/api/log/self', { params }),
   getChannels: () => request.get('/api/channel/all')
 }
 

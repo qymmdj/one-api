@@ -86,6 +86,31 @@ func SearchUsers(keyword string) (users []*User, err error) {
 	return users, err
 }
 
+func SearchUsersWithKeyword(keyword string, startIdx int, num int) ([]*User, error) {
+	var users []*User
+	var err error
+	if !common.UsingPostgreSQL {
+		err = DB.Omit("password").Where("id = ? or username LIKE ? or email LIKE ? or display_name LIKE ?", helper.String2Int(keyword), "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%").Order("id desc").Limit(num).Offset(startIdx).Find(&users).Error
+	} else {
+		err = DB.Omit("password").Where("username LIKE ? or email LIKE ? or display_name LIKE ?", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%").Order("id desc").Limit(num).Offset(startIdx).Find(&users).Error
+	}
+	return users, err
+}
+
+func CountUsers() (count int64, err error) {
+	err = DB.Model(&User{}).Where("status != ?", UserStatusDeleted).Count(&count).Error
+	return count, err
+}
+
+func CountUsersWithKeyword(keyword string) (count int64, err error) {
+	if !common.UsingPostgreSQL {
+		err = DB.Model(&User{}).Where("status != ?", UserStatusDeleted).Where("id = ? or username LIKE ? or email LIKE ? or display_name LIKE ?", helper.String2Int(keyword), "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%").Count(&count).Error
+	} else {
+		err = DB.Model(&User{}).Where("status != ?", UserStatusDeleted).Where("username LIKE ? or email LIKE ? or display_name LIKE ?", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%").Count(&count).Error
+	}
+	return count, err
+}
+
 func GetUserById(id int, selectAll bool) (*User, error) {
 	if id == 0 {
 		return nil, errors.New("id 为空！")

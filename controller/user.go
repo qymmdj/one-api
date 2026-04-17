@@ -190,8 +190,20 @@ func GetAllUsers(c *gin.Context) {
 		p = 0
 	}
 
+	keyword := c.Query("keyword")
 	order := c.DefaultQuery("order", "")
-	users, err := model.GetAllUsers(p*config.ItemsPerPage, config.ItemsPerPage, order)
+	
+	var users []*model.User
+	var err error
+	var total int64
+	
+	if keyword != "" {
+		users, err = model.SearchUsersWithKeyword(keyword, p*config.ItemsPerPage, config.ItemsPerPage)
+		total, _ = model.CountUsersWithKeyword(keyword)
+	} else {
+		users, err = model.GetAllUsers(p*config.ItemsPerPage, config.ItemsPerPage, order)
+		total, _ = model.CountUsers()
+	}
 
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
@@ -204,7 +216,10 @@ func GetAllUsers(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
-		"data":    users,
+		"data": gin.H{
+			"list":  users,
+			"total": total,
+		},
 	})
 }
 

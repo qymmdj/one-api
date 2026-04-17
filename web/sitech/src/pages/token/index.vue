@@ -10,17 +10,35 @@
         </div>
       </template>
       
+      <div class="search-bar">
+        <el-input 
+          v-model="searchForm.keyword" 
+          placeholder="请输入令牌名称搜索" 
+          class="search-input"
+          @keyup.enter="handleSearch"
+        >
+          <template #prefix>
+            <Search />
+          </template>
+        </el-input>
+        <el-button type="primary" @click="handleSearch">搜索</el-button>
+        <el-button @click="resetSearch">重置</el-button>
+      </div>
+      
       <el-table :data="tableData" v-loading="loading" stripe>
         <el-table-column prop="id" label="ID" width="60" />
         <el-table-column prop="name" label="名称" min-width="120" />
-        <el-table-column prop="key" label="密钥" min-width="180">
+        <el-table-column prop="key" label="密钥" min-width="200">
           <template #default="{ row }">
             <span v-if="row.showKey">{{ row.key }}</span>
             <span v-else>••••••••••••••••</span>
-            <el-button type="primary" link @click="toggleShowKey(row)">
-              {{ row.showKey ? '隐藏' : '显示' }}
-            </el-button>
-            <el-button type="primary" link @click="copyKey(row.key)">复制</el-button>
+            <el-icon class="key-icon" @click="toggleShowKey(row)" :title="row.showKey ? '隐藏' : '显示'">
+              <View v-if="!row.showKey" />
+              <Hide v-else />
+            </el-icon>
+            <el-icon class="key-icon" @click="copyKey(row.key)" title="复制">
+              <CopyDocument />
+            </el-icon>
           </template>
         </el-table-column>
         <el-table-column prop="status" label="状态" width="100">
@@ -109,6 +127,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search, Plus, View, Hide, CopyDocument } from '@element-plus/icons-vue'
 import { tokenApi } from '@/api'
 import { TOKEN_STATUS, formatQuota, formatDate, formatDateTime } from '@/utils/constants'
 
@@ -120,6 +139,10 @@ const submitLoading = ref(false)
 const formRef = ref()
 
 const pagination = reactive({ page: 1, size: 20, total: 0 })
+
+const searchForm = reactive({
+  keyword: ''
+})
 
 const form = reactive({
   id: null,
@@ -137,7 +160,14 @@ const rules = {
 const loadData = async () => {
   loading.value = true
   try {
-    const res = await tokenApi.getList({ page: pagination.page, size: pagination.size })
+    const params = { 
+      page: pagination.page, 
+      size: pagination.size 
+    }
+    if (searchForm.keyword) {
+      params.keyword = searchForm.keyword
+    }
+    const res = await tokenApi.getList(params)
     tableData.value = (res.data?.list || []).map(item => ({ ...item, showKey: false }))
     pagination.total = res.data?.total || 0
   } catch (error) {
@@ -145,6 +175,17 @@ const loadData = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const handleSearch = () => {
+  pagination.page = 1
+  loadData()
+}
+
+const resetSearch = () => {
+  searchForm.keyword = ''
+  pagination.page = 1
+  loadData()
 }
 
 const toggleShowKey = (row) => {
@@ -230,6 +271,33 @@ onMounted(() => { loadData() })
 
 <style lang="scss" scoped>
 .token-page {
-  .card-header { display: flex; justify-content: space-between; align-items: center; }
+  .card-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+  }
+  
+  .search-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    align-items: center;
+    
+    .search-input {
+      width: 280px;
+    }
+  }
+
+  .key-icon {
+    margin-left: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    color: #409eff;
+    vertical-align: middle;
+
+    &:hover {
+      color: #66b1ff;
+    }
+  }
 }
 </style>
